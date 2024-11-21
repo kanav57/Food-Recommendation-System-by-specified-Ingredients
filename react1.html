@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Finder</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f06292, #ba68c8);
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-top: 40px;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .search-box {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        label {
+            display: block;
+            font-size: 1.1rem;
+            color: #444;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1.2rem;
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 220px;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #f50057;
+        }
+
+        /* Recipe Card Styles */
+        .recipe-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .recipe-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            padding: 20px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .recipe-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .recipe-card h3 {
+            margin-top: 15px;
+            font-size: 1.4rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .recipe-card p {
+            color: #777;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .recipe-card a {
+            text-decoration: none;
+            color: #ff4081;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        .recipe-card a:hover {
+            text-decoration: underline;
+        }
+
+        /* Pagination Button */
+        #nextButton {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: none; /* Initially hide the Next button */
+            transition: background-color 0.3s ease;
+        }
+
+        #nextButton:hover {
+            background-color: #f50057;
+        }
+
+        /* Loading Spinner */
+        #loadingSpinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        #loadingSpinner img {
+            width: 50px;
+            height: 50px;
+        }
+
+        /* Ingredients and Instructions */
+        .ingredients-list,
+        .instructions-list {
+            text-align: left;
+            margin-top: 15px;
+        }
+
+        .ingredients-list li,
+        .instructions-list li {
+            padding: 5px 0;
+            color: #555;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .recipe-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .recipe-card {
+                width: 80%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Recipe Finder</h1>
+
+        <!-- Ingredient Input Section -->
+        <div class="search-box">
+            <label for="ingredientUsed">Ingredient Used:</label>
+            <input type="text" id="ingredientUsed" placeholder="Enter ingredient used" />
+
+            <label for="ingredientNotUsed">Ingredient Not Used:</label>
+            <input type="text" id="ingredientNotUsed" placeholder="Enter ingredient not used" />
+
+            <button onclick="searchRecipes()">Find Recipes</button>
+        </div>
+
+        <!-- Recipe Display Area -->
+        <div id="recipesContainer" class="recipe-container"></div>
+
+        <!-- Pagination Button -->
+        <button id="nextButton" onclick="loadNextPage()">Next</button>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner">
+            <img src="https://i.gifer.com/4V0b.gif" alt="Loading..." />
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let recipeData = [];
+
+        // Function to search recipes based on ingredients
+        function searchRecipes() {
+            const ingredientUsed = document.getElementById("ingredientUsed").value;
+            const ingredientNotUsed = document.getElementById("ingredientNotUsed").value;
+
+            const data = {
+                ingredientUsed: ingredientUsed,
+                ingredientNotUsed: ingredientNotUsed,
+                page: currentPage
+            };
+
+            // Show loading spinner
+            document.getElementById("loadingSpinner").style.display = "block";
+
+            fetch('http://127.0.0.1:5000/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("loadingSpinner").style.display = "none"; // Hide loading spinner
+                if (data.recipes) {
+                    recipeData = data.recipes;
+                    displayRecipes();
+                    document.getElementById("nextButton").style.display = "block"; // Show Next button after recipes are fetched
+                } else {
+                    alert('No recipes found');
+                    document.getElementById("nextButton").style.display = "none"; // Hide Next button if no recipes
+                }
+            })
+            .catch(error => {
+                document.getElementById("loadingSpinner").style.display = "none"; // Hide loading spinner in case of error
+                console.error('Error fetching data:', error);
+            });
+        }
+
+        // Function to display recipes
+        function displayRecipes() {
+            const container = document.getElementById('recipesContainer');
+            container.innerHTML = ''; // Clear previous recipes
+
+            recipeData.forEach(recipe => {
+                const recipeDiv = document.createElement('div');
+                recipeDiv.classList.add('recipe-card');
+                recipeDiv.innerHTML = `
+                    <img src="${recipe.image_url}" alt="${recipe.name}">
+                    <h3>${recipe.name}</h3>
+                    <p><strong>Calories:</strong> ${recipe.calories}</p>
+                    <p><strong>Prep Time:</strong> ${recipe.prep_time} mins</p>
+                    <p><strong>Total Time:</strong> ${recipe.total_time} mins</p>
+                    <a href="${recipe.url}" target="_blank">Full Recipe</a>
+                    <h4>Ingredients:</h4>
+                    <ul class="ingredients-list">
+                        ${recipe.ingredients.map(ingredient => `<li>${ingredient.quantity} ${ingredient.state} ${ingredient.ingredient}</li>`).join('')}
+                    </ul>
+                    <h4>Instructions:</h4>
+                    <ul class="instructions-list">
+                        ${recipe.process.map(step => `<li>${step}</li>`).join('')}
+                    </ul>
+                `;
+                container.appendChild(recipeDiv);
+            });
+
+            // Make recipes visible with a smooth fade-in effect
+            container.style.opacity = "1";
+        }
+
+        // Function to load next page of recipes
+        function loadNextPage() {
+            currentPage++;
+            searchRecipes();
+        }
+    </script>
+
+</body>
+</html>
